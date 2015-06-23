@@ -8,6 +8,10 @@ public class objectDiscover : MonoBehaviour {
 	private CardboardHead head;
 	private float timer;
 	public string instruction;
+	public string instruction_deep;
+	string text;
+	public bool is_trigger;
+	public bool discovered;
 	GameObject Text;
 
 
@@ -15,9 +19,8 @@ public class objectDiscover : MonoBehaviour {
 	void Start () {
 		head = Camera.main.GetComponent<StereoController> ().Head;
 		timer = 0;
-		//instruction = GetComponent<>();
 		Text = GameObject.Find ("Text");
-	
+		text = instruction;
 	}
 	
 	// Update is called once per frame
@@ -27,12 +30,19 @@ public class objectDiscover : MonoBehaviour {
 
 		if (isLookedAt) {
 			timer += Time.deltaTime;
+
+			if(Input.GetMouseButtonDown(0)){
+				discovered = true;
+				text = instruction_deep;
+			}
+
 			if(timer>=glazeSeconds){
-				Text.GetComponent<instructionText>().ChangeText(instruction);
+				Text.GetComponent<instructionText>().ChangeText(text);
 			}
 		}
 		else{
-				timer = 0;
+			text = instruction;
+			timer = 0;
 		}
 	
 	}

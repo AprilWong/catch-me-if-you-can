@@ -1,51 +1,114 @@
-#catch me if you can
+#基于Google Cardboard SDK与Unity5的虚拟现实密室逃脱游戏开发
 
-- 一个简单的3D密室逃脱游戏
-- 使用 Google cardboard
-- 基于Unity5.0开发
+
+**王奕**
+
+**3130000059**
+
+##游戏介绍
+虚拟现实是当下一大热点。2014年Google I/O发布了Google Cardboard，成本只有两美元的3D眼镜，只需要简单的组装即可将智能手机变成一个虚拟现实的原型设备。Catch me if you can 正是这么一个简单的虚拟现实密室逃脱类游戏，使用 Google cardboard SDK，基于Unity5.0开发。玩家需要在规定的时间内按照剧情顺序找到密室出口。
 
 
 ##游戏规则
-- 在规定的时间内按照剧情顺序找到密室出口
+玩家需要在规定的时间内按照剧情顺序找到密室出口。玩家从梦境中醒来，发现己身处在一间小木屋里，木屋的门被锁住了，窗户也被封住了，玩家需要根据剧情发展在屋子中找到相应的道具，解锁木屋的门。首先，玩家需要从床头柜中获得带锁的笔记本，锁是五层同心圆，玩家只有三次机会，如果失误的话木屋会爆炸，游戏就会结束。玩家需要打开风扇，风扇会显示同心圆图案。将对应的图案输入笔记本的锁，即可打开笔记本，显示“Catch me if you can”。同时，玩家需要关闭电灯，此时再打开笔记本，就能读到屋子的主人生前的日记，获得线索——主人的生日。在书架上找到一个保险箱，输入主人的生日，即可打开保险箱，找到开门的钥匙。然而，这一切只是一个开始，所有的故事都是未解之谜……
+为了增加游戏难度，场景中加入了一些混淆视听的互动装置，比如枕头可以被移开，书架上的书都能被打开等等。
+游戏的操作方式也比较简单，玩家通过Cardboard控制视角，通过手柄操作人物位置的移动。通过Cardboard上的物理按键控制与物体的交互。
 
-##游戏背景
-- todo
+##游戏实现
 
-##剧情
-- 需要更有创意的剧情。。。
-- 一间破旧的小木屋 门锁住了
-- 灯是开着的 风扇
-- 床 床头柜
-- 床头柜 得到带锁的笔记本 锁－五层同心圆 只能试3次
-- 打开风扇 显示同心圆图案
-- 打开笔记本 显示catch me if you can
-- 关灯 再打开笔记本 显示剧情（死者生前的日记啊啥啥啥的）
-- 笔记本内 掉出钥匙 以为逃脱成功，然而只是一个开始，所有的一切都是未解之谜。。。
-- 接下去的剧情发展大概就要看catch me if you can II, III, IV, V...
-- QAQ 脑洞开不出 就这样吧
-- 应该再多一些坑 比如有个箱子 打开之后并没有什么（）用
-- 有个柜子 打开之后并没有什么（）用
-- 枕头可以被移开 移开之后并没有什么（）用
-- 被子可以被掀起来 掀起来之后并没有什么（）用
-- 书架上有一堆书 拿起来之后并没有什么（）用
+1. 玩家的控制与移动
 
-##需要的素材
-- 一个床 一个枕头 一个被子
-- 一个床头柜 一本带锁的笔记本
-- 一个灯 一个电扇
-- 一个书桌 一个书架 一堆书
-- 一个门
+playermovement.cs
 
-##暂时不清楚怎么做的地方
-- 打开东西 是真的打开 还是静态的打开？
-- 被子什么的 是闪闪发光的五毛钱特效 还是用布料的物理效果？ 
-- 游戏时间 如何控制？
+using UnityEngine;
+using System.Collections;
 
-##操作方式
-- Google Cardboard 控制视角
-- 手柄控制前进后退？
-- Google Cardboard物理按键控制选定
+public class playerMovement : MonoBehaviour {
+	
+	public float speed = 1f;
+	private CardboardHead head;
+	// Use this for initialization
+	void Start () {
+		head = Camera.main.GetComponent<StereoController> ().Head;
+	
+	}
+	
+	// Update is called once per frame
+	void Update () {
+		CharacterController controller = GetComponent<CharacterController>();
 
+		float h = - Input.GetAxis ("Horizontal");
+		float v = Input.GetAxis ("Vertical");
+
+		Vector3 moveDirection;
+		Vector3 headDirection = head.Gaze.direction;
+		Vector3 zCord = new Vector3 (0, 1, 0);
+		Vector3 headvDirection = Vector3.Cross (headDirection, zCord);
+		headDirection = transform.TransformDirection (headDirection);
+		headvDirection = transform.TransformDirection (headvDirection);
+		moveDirection = h * headvDirection + v * headDirection;
+		moveDirection = transform.TransformDirection (moveDirection);
+
+
+		controller.Move (moveDirection * Time.deltaTime);
+
+
+	}
+}
+
+2. 玩家视线与场景中物体的互动
+
+objectDiscover.cs
+
+using UnityEngine;
+using System.Collections;
+
+public class objectDiscover : MonoBehaviour {
+
+	public float glazeSeconds = 0.5f;
+
+	private CardboardHead head;
+	private float timer;
+	public string instruction;
+	public string instruction_deep;
+	string text;
+	public bool is_trigger;
+	public bool discovered;
+	GameObject Text;
+
+
+	// Use this for initialization
+	void Start () {
+		head = Camera.main.GetComponent<StereoController> ().Head;
+		timer = 0;
+		Text = GameObject.Find ("Text");
+		text = instruction;
+	}
+	
+	// Update is called once per frame
+	void Update () {
+		RaycastHit hit;
+		bool isLookedAt = GetComponent<Collider> ().Raycast (head.Gaze, out hit, Mathf.Infinity);
+
+		if (isLookedAt) {
+			timer += Time.deltaTime;
+
+			if(Input.GetMouseButtonDown(0)){
+				discovered = true;
+				text = instruction_deep;
+			}
+
+			if(timer>=glazeSeconds){
+				Text.GetComponent<instructionText>().ChangeText(text);
+			}
+		}
+		else{
+			text = instruction;
+			timer = 0;
+		}
+	
+	}
+}
 
 
 

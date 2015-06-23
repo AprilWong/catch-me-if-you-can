@@ -17,6 +17,7 @@ public class instructionText : MonoBehaviour {
 	}
 
 	public void ChangeText(string sth){
+		//print ("change!!");
 		instruction.text = sth;
 	}
 }
